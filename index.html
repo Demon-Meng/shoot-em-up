@@ -86,7 +86,7 @@
             display: none;
             position: absolute;
             bottom: 0; left: 0; right: 0;
-            height: 140px;
+            height: 160px;
             z-index: 15;
             pointer-events: none;
         }
@@ -123,6 +123,18 @@
         .mobile-btn.fire:active {
             background: rgba(255,60,60,0.5);
         }
+        .mobile-btn.sm {
+            width: 50px; height: 50px;
+            font-size: 18px;
+            opacity: 0.7;
+        }
+        .mobile-btn.sm:active { opacity: 1; }
+        .mobile-btn-group.center {
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 30px;
+            gap: 14px;
+        }
         @media (hover: none) and (pointer: coarse) {
             #mobileControls { display: block; }
         }
@@ -142,7 +154,7 @@
             <button class="btn" id="btnStart">开始游戏</button>
             <div class="subtitle" style="margin-top:16px; font-size:clamp(11px,2.8vw,14px); opacity:0.6;">
                 键盘: WASD移动 · 空格射击 · P暂停 · R切换射击模式<br>
-                手机: 左下方向键移动 · 右下按钮射击
+                手机: 左下方向键移动 · 右下按钮射击 · 中间 ⏸暂停 R切换射击
             </div>
         </div>
         <div id="gameOverScreen">
@@ -158,6 +170,10 @@
             <div class="mobile-btn-group left">
                 <div class="mobile-btn" id="btnLeft">&#9664;</div>
                 <div class="mobile-btn" id="btnRight">&#9654;</div>
+            </div>
+            <div class="mobile-btn-group center">
+                <div class="mobile-btn sm" id="btnPause">⏸</div>
+                <div class="mobile-btn sm" id="btnAuto">R</div>
             </div>
             <div class="mobile-btn-group right">
                 <div class="mobile-btn fire" id="btnFire">&#9650;</div>
@@ -432,6 +448,8 @@
     bindBtn('btnLeft', v => { mobileLeft = v; if (v) usingMouse = false; });
     bindBtn('btnRight', v => { mobileRight = v; if (v) usingMouse = false; });
     bindBtn('btnFire', v => mobileFire = v);
+    document.getElementById('btnPause').addEventListener('click', e => { e.stopPropagation(); togglePause(); });
+    document.getElementById('btnAuto').addEventListener('click', e => { e.stopPropagation(); autoFire = !autoFire; });
 
     // Prevent all default touch on document to stop pull-to-refresh and scrolling
     document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
