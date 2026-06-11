@@ -86,55 +86,56 @@
             display: none;
             position: absolute;
             bottom: 0; left: 0; right: 0;
-            height: 160px;
             z-index: 15;
+            padding: 2.5vw 3vw 3.5vw;
             pointer-events: none;
         }
-        .mobile-btn-group {
-            position: absolute;
-            bottom: 20px;
+        .mobile-btns {
             display: flex;
-            gap: 20px;
+            justify-content: space-between;
+            align-items: flex-end;
+            width: 100%;
+        }
+        .mobile-btns .group {
+            display: flex;
+            gap: 2.5vw;
             pointer-events: auto;
         }
-        .mobile-btn-group.left { left: 20px; }
-        .mobile-btn-group.right { right: 20px; }
+        .mobile-btns .group.mid {
+            gap: 2vw;
+            align-self: center;
+        }
         .mobile-btn {
-            width: 70px; height: 70px;
+            width: clamp(48px, 14vw, 72px);
+            height: clamp(48px, 14vw, 72px);
             background: rgba(255,255,255,0.12);
             border: 2px solid rgba(255,255,255,0.25);
             border-radius: 50%;
             color: rgba(255,255,255,0.7);
-            font-size: 28px;
+            font-size: clamp(18px, 5vw, 28px);
             display: flex;
             justify-content: center;
             align-items: center;
             -webkit-tap-highlight-color: transparent;
+            pointer-events: auto;
+            flex-shrink: 0;
         }
         .mobile-btn.fire {
             background: rgba(255,60,60,0.25);
             border-color: rgba(255,60,60,0.5);
             color: rgba(255,100,100,0.8);
-            width: 80px; height: 80px;
-        }
-        .mobile-btn:active {
-            background: rgba(255,255,255,0.3);
-        }
-        .mobile-btn.fire:active {
-            background: rgba(255,60,60,0.5);
+            width: clamp(54px, 16vw, 82px);
+            height: clamp(54px, 16vw, 82px);
         }
         .mobile-btn.sm {
-            width: 50px; height: 50px;
-            font-size: 18px;
+            width: clamp(38px, 10vw, 52px);
+            height: clamp(38px, 10vw, 52px);
+            font-size: clamp(12px, 3.5vw, 18px);
             opacity: 0.7;
         }
+        .mobile-btn:active { background: rgba(255,255,255,0.3); }
+        .mobile-btn.fire:active { background: rgba(255,60,60,0.5); }
         .mobile-btn.sm:active { opacity: 1; }
-        .mobile-btn-group.center {
-            left: 50%;
-            transform: translateX(-50%);
-            bottom: 30px;
-            gap: 14px;
-        }
         @media (hover: none) and (pointer: coarse) {
             #mobileControls { display: block; }
         }
@@ -167,16 +168,18 @@
             <div class="subtitle">点击继续</div>
         </div>
         <div id="mobileControls">
-            <div class="mobile-btn-group left">
-                <div class="mobile-btn" id="btnLeft">&#9664;</div>
-                <div class="mobile-btn" id="btnRight">&#9654;</div>
-            </div>
-            <div class="mobile-btn-group center">
-                <div class="mobile-btn sm" id="btnPause">⏸</div>
-                <div class="mobile-btn sm" id="btnAuto">R</div>
-            </div>
-            <div class="mobile-btn-group right">
-                <div class="mobile-btn fire" id="btnFire">&#9650;</div>
+            <div class="mobile-btns">
+                <div class="group">
+                    <div class="mobile-btn" id="btnLeft">&#9664;</div>
+                    <div class="mobile-btn" id="btnRight">&#9654;</div>
+                </div>
+                <div class="group mid">
+                    <div class="mobile-btn sm" id="btnPause">⏸</div>
+                    <div class="mobile-btn sm" id="btnAuto">R</div>
+                </div>
+                <div class="group">
+                    <div class="mobile-btn fire" id="btnFire">&#9650;</div>
+                </div>
             </div>
         </div>
     </div>
