@@ -197,7 +197,7 @@
                     <div class="inst-title">道具说明</div>
                     <div class="inst-row"><span class="inst-icon" style="background:#ffcc00;">P</span> 升级火力（最高三连发）</div>
                     <div class="inst-row"><span class="inst-icon" style="background:#ff4488;">❤</span> 恢复一条生命</div>
-                    <div class="inst-row"><span class="inst-icon" style="background:#00ccff;">S</span> 护盾5秒，抵挡一次伤害</div>
+                    <div class="inst-row"><span class="inst-icon" style="background:#00ccff;">S</span> 护盾5秒，持续抵挡所有伤害</div>
                     <div class="inst-row"><span class="inst-icon" style="background:#ff8800;">B</span> 炸弹+1，清屏全灭敌机</div>
                 </div>
                 <div class="inst-section">
@@ -679,24 +679,27 @@
                 if (collide(player, e)) {
                     e.hp = 0;
                     if (player.shieldTimer > 0) {
-                        player.shieldTimer = 0;
-                        explode(player.x, player.y, '#00ccff', 15);
+                        explode(player.x, player.y, '#00ccff', 10);
                     } else {
                         lives--;
                         player.power = Math.max(1, player.power - 1);
+                        player.invincible = 120;
                         explode(player.x, player.y, '#00d4ff', 20);
                         if (lives <= 0) endGame();
                     }
-                    player.invincible = 120;
                 }
             });
             enemyBullets = enemyBullets.filter(b => {
                 if (collide(player, { x: b.x, y: b.y, w: b.w, h: b.h })) {
                     if (player.shieldTimer > 0) {
-                        player.shieldTimer = 0;
-                        explode(player.x, player.y, '#00ccff', 10);
+                        explode(player.x, player.y, '#00ccff', 8);
                     } else {
                         lives--;
+                        player.power = Math.max(1, player.power - 1);
+                        player.invincible = 120;
+                        explode(player.x, player.y, '#ff4444', 15);
+                        if (lives <= 0) endGame();
+                    }
                         player.power = Math.max(1, player.power - 1);
                         explode(player.x, player.y, '#ff4444', 15);
                         if (lives <= 0) endGame();
