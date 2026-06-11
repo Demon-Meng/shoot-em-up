@@ -154,8 +154,8 @@
             <div class="subtitle">消灭敌机，保卫家园</div>
             <button class="btn" id="btnStart">开始游戏</button>
             <div class="subtitle" style="margin-top:16px; font-size:clamp(11px,2.8vw,14px); opacity:0.6;">
-                键盘: WASD移动 · 空格射击 · P暂停 · R切换射击模式<br>
-                手机: 左下方向键移动 · 右下按钮射击 · 中间 ⏸暂停 R切换射击
+                键盘: WASD移动 · 空格射击 · B炸弹 · P暂停 · R切换射击模式<br>
+                手机: 触摸屏幕移动并自动射击 · ⏸暂停 · B炸弹
             </div>
         </div>
         <div id="gameOverScreen">
@@ -169,16 +169,9 @@
         </div>
         <div id="mobileControls">
             <div class="mobile-btns">
-                <div class="group">
-                    <div class="mobile-btn" id="btnLeft">&#9664;</div>
-                    <div class="mobile-btn" id="btnRight">&#9654;</div>
-                </div>
                 <div class="group mid">
                     <div class="mobile-btn sm" id="btnPause">⏸</div>
-                    <div class="mobile-btn sm" id="btnAuto">R</div>
-                </div>
-                <div class="group">
-                    <div class="mobile-btn fire" id="btnFire">&#9650;</div>
+                    <div class="mobile-btn sm" id="btnBomb" style="color:#ffa500;">B</div>
                 </div>
             </div>
         </div>
@@ -243,7 +236,7 @@
 
     // Player
     function createPlayer() {
-        return { x: CW / 2, y: CH - 80, w: 40, h: 40, speed: 6, power: 1, invincible: 0 };
+        return { x: CW / 2, y: CH - 80, w: 40, h: 40, speed: 6, power: 1, invincible: 0, shield: 0, shieldTimer: 0, bombs: 2 };
     }
 
     function drawPlayer() {
@@ -264,6 +257,23 @@
         ctx.moveTo(-5, 18); ctx.lineTo(5, 18); ctx.lineTo(0, 26 + Math.random() * 4);
         ctx.closePath(); ctx.fill();
         ctx.restore();
+        // Shield
+        if (player.shieldTimer > 0) {
+            const flashing = player.shieldTimer <= 120;
+            const visible = !flashing || Math.floor(player.shieldTimer / 6) % 2 === 0;
+            if (visible) {
+                ctx.save();
+                ctx.strokeStyle = `rgba(0, 200, 255, ${0.4 + Math.sin(Date.now() / 200) * 0.2})`;
+                ctx.lineWidth = 3;
+                ctx.shadowColor = '#00ccff';
+                ctx.shadowBlur = 12;
+                ctx.beginPath();
+                ctx.arc(player.x, player.y, 30, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+                ctx.restore();
+            }
+        }
     }
 
     // Bullets
@@ -346,19 +356,23 @@
     // Powerups
     function spawnPowerup(x, y) {
         if (Math.random() < 0.15) {
-            powerups.push({ x, y, w: 20, h: 20, speed: 1.5, type: Math.random() < 0.6 ? 'power' : 'life' });
+            const r = Math.random();
+            const type = r < 0.4 ? 'power' : r < 0.65 ? 'life' : r < 0.88 ? 'shield' : 'bomb';
+            powerups.push({ x, y, w: 20, h: 20, speed: 1.5, type });
         }
     }
 
     function drawPowerup(p) {
         ctx.save();
         ctx.translate(p.x, p.y);
-        ctx.fillStyle = p.type === 'power' ? '#ffcc00' : '#ff4488';
+        const colors = { power: '#ffcc00', life: '#ff4488', shield: '#00ccff', bomb: '#ff8800' };
+        const labels = { power: 'P', life: '❤', shield: 'S', bomb: 'B' };
+        ctx.fillStyle = colors[p.type];
         ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 14px Arial';
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(p.type === 'power' ? 'P' : '❤', 0, 1);
+        ctx.fillText(labels[p.type], 0, 1);
         ctx.restore();
     }
 
@@ -379,6 +393,7 @@
         bullets = []; enemies = []; enemyBullets = []; particles = []; powerups = [];
         score = 0; lives = 3; level = 1; spawnTimer = 0;
         gameOver = false; paused = false;
+        bombEffect = null;
         initStars();
         if (animFrame) cancelAnimationFrame(animFrame);
         gameLoop();
@@ -396,6 +411,75 @@
         document.getElementById('pauseScreen').style.display = paused ? 'flex' : 'none';
     }
 
+    function useBomb() {
+        if (gameOver || paused || player.bombs <= 0) return;
+        player.bombs--;
+        // Create bomb effect
+        bombEffect = { x: player.x, y: player.y, timer: 0, maxTimer: 60 };
+        // Massive particles
+        for (let i = 0; i < 80; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = Math.random() * 8 + 3;
+            particles.push({
+                x: player.x, y: player.y,
+                vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+                life: 1, color: ['#ff8800', '#ffcc00', '#ff4400', '#fff'][Math.floor(Math.random() * 4)],
+                size: Math.random() * 6 + 3
+            });
+        }
+        // Destroy all enemies and enemy bullets
+        enemies.forEach(e => {
+            score += e.score;
+            explode(e.x, e.y, e.color, 10);
+        });
+        enemies = [];
+        enemyBullets.forEach(b => explode(b.x, b.y, '#ff4444', 4));
+        enemyBullets = [];
+    }
+
+    let bombEffect = null;
+    function drawBombEffect() {
+        if (!bombEffect) return;
+        const t = bombEffect.timer;
+        const maxR = Math.max(CW, CH);
+        const progress = t / bombEffect.maxTimer;
+
+        // Expanding shockwave ring
+        const ringR = progress * maxR * 0.8;
+        const ringAlpha = Math.max(0, 1 - progress);
+        ctx.save();
+        ctx.strokeStyle = `rgba(255, 200, 50, ${ringAlpha})`;
+        ctx.lineWidth = 8 * (1 - progress);
+        ctx.shadowColor = '#ff8800';
+        ctx.shadowBlur = 20 * (1 - progress);
+        ctx.beginPath();
+        ctx.arc(bombEffect.x, bombEffect.y, ringR, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Inner glow
+        const innerAlpha = ringAlpha * 0.3;
+        const grad = ctx.createRadialGradient(
+            bombEffect.x, bombEffect.y, 0,
+            bombEffect.x, bombEffect.y, ringR * 0.6
+        );
+        grad.addColorStop(0, `rgba(255, 255, 200, ${innerAlpha})`);
+        grad.addColorStop(0.5, `rgba(255, 150, 0, ${innerAlpha * 0.5})`);
+        grad.addColorStop(1, 'rgba(255, 100, 0, 0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(bombEffect.x, bombEffect.y, ringR * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Screen flash overlay
+        const flashAlpha = ringAlpha * 0.4;
+        ctx.fillStyle = `rgba(255, 255, 255, ${flashAlpha})`;
+        ctx.fillRect(0, 0, CW, CH);
+        ctx.restore();
+
+        bombEffect.timer++;
+        if (bombEffect.timer >= bombEffect.maxTimer) bombEffect = null;
+    }
+
     // Buttons (onclick for reliability on both mobile and desktop)
     document.getElementById('btnStart').addEventListener('click', startGame);
     document.getElementById('btnRestart').addEventListener('click', startGame);
@@ -408,14 +492,16 @@
         if (['KeyW','KeyS','KeyA','KeyD'].includes(e.code)) usingMouse = false;
         if (e.code === 'KeyP') togglePause();
         if (e.code === 'KeyR') autoFire = !autoFire;
+        if (e.code === 'KeyB') useBomb();
     });
     document.addEventListener('keyup', e => keys[e.code] = false);
 
     // Mouse input
-    let mouseX = CW / 2, usingMouse = false, mouseDown = false;
+    let mouseX = CW / 2, mouseY = CH / 2, usingMouse = false, mouseDown = false;
     canvas.addEventListener('mousemove', e => {
         const rect = canvas.getBoundingClientRect();
         mouseX = (e.clientX - rect.left) * (CW / rect.width);
+        mouseY = (e.clientY - rect.top) * (CH / rect.height);
         usingMouse = true;
     });
     canvas.addEventListener('mousedown', e => { if (e.button === 0) mouseDown = true; });
@@ -426,6 +512,7 @@
         e.preventDefault();
         const rect = canvas.getBoundingClientRect();
         mouseX = (e.touches[0].clientX - rect.left) * (CW / rect.width);
+        mouseY = (e.touches[0].clientY - rect.top) * (CH / rect.height);
         usingMouse = true;
         mouseDown = true;
     }, { passive: false });
@@ -433,6 +520,7 @@
         e.preventDefault();
         const rect = canvas.getBoundingClientRect();
         mouseX = (e.touches[0].clientX - rect.left) * (CW / rect.width);
+        mouseY = (e.touches[0].clientY - rect.top) * (CH / rect.height);
         usingMouse = true;
     }, { passive: false });
     canvas.addEventListener('touchend', e => {
@@ -440,19 +528,16 @@
         mouseDown = false;
     }, { passive: false });
 
-    // Mobile buttons - use pointer events for multi-touch support
-    let mobileLeft = false, mobileRight = false, mobileFire = false;
+    // Mobile buttons
+    let mobileLeft = false, mobileRight = false, mobileUp = false, mobileDown = false, mobileFire = false;
     function bindBtn(id, setter) {
         const el = document.getElementById(id);
         el.addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); setter(true); }, { passive: false });
         el.addEventListener('touchend', e => { e.preventDefault(); e.stopPropagation(); setter(false); }, { passive: false });
         el.addEventListener('touchcancel', e => { e.preventDefault(); setter(false); }, { passive: false });
     }
-    bindBtn('btnLeft', v => { mobileLeft = v; if (v) usingMouse = false; });
-    bindBtn('btnRight', v => { mobileRight = v; if (v) usingMouse = false; });
-    bindBtn('btnFire', v => mobileFire = v);
     document.getElementById('btnPause').addEventListener('click', e => { e.stopPropagation(); togglePause(); });
-    document.getElementById('btnAuto').addEventListener('click', e => { e.stopPropagation(); autoFire = !autoFire; });
+    document.getElementById('btnBomb').addEventListener('click', e => { e.stopPropagation(); useBomb(); });
 
     // Prevent all default touch on document to stop pull-to-refresh and scrolling
     document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
@@ -464,12 +549,17 @@
         // Player movement
         if (usingMouse) {
             player.x += (mouseX - player.x) * 0.15;
+            player.y += (mouseY - player.y) * 0.15;
         } else {
             if (keys['KeyA'] || mobileLeft) player.x -= player.speed;
             if (keys['KeyD'] || mobileRight) player.x += player.speed;
+            if (keys['KeyW'] || mobileUp) player.y -= player.speed;
+            if (keys['KeyS'] || mobileDown) player.y += player.speed;
         }
         player.x = Math.max(player.w / 2, Math.min(CW - player.w / 2, player.x));
+        player.y = Math.max(player.h / 2, Math.min(CH - player.h / 2, player.y));
         if (player.invincible > 0) player.invincible--;
+        if (player.shieldTimer > 0) player.shieldTimer--;
 
         // Fire
         fireTimer++;
@@ -531,20 +621,30 @@
             enemies.forEach(e => {
                 if (collide(player, e)) {
                     e.hp = 0;
-                    lives--;
+                    if (player.shieldTimer > 0) {
+                        player.shieldTimer = 0;
+                        explode(player.x, player.y, '#00ccff', 15);
+                    } else {
+                        lives--;
+                        player.power = Math.max(1, player.power - 1);
+                        explode(player.x, player.y, '#00d4ff', 20);
+                        if (lives <= 0) endGame();
+                    }
                     player.invincible = 120;
-                    player.power = Math.max(1, player.power - 1);
-                    explode(player.x, player.y, '#00d4ff', 20);
-                    if (lives <= 0) endGame();
                 }
             });
             enemyBullets = enemyBullets.filter(b => {
                 if (collide(player, { x: b.x, y: b.y, w: b.w, h: b.h })) {
-                    lives--;
+                    if (player.shieldTimer > 0) {
+                        player.shieldTimer = 0;
+                        explode(player.x, player.y, '#00ccff', 10);
+                    } else {
+                        lives--;
+                        player.power = Math.max(1, player.power - 1);
+                        explode(player.x, player.y, '#ff4444', 15);
+                        if (lives <= 0) endGame();
+                    }
                     player.invincible = 120;
-                    player.power = Math.max(1, player.power - 1);
-                    explode(player.x, player.y, '#ff4444', 15);
-                    if (lives <= 0) endGame();
                     return false;
                 }
                 return true;
@@ -556,7 +656,9 @@
         powerups = powerups.filter(p => {
             if (collide(player, { x: p.x, y: p.y, w: 24, h: 24 })) {
                 if (p.type === 'power') player.power = Math.min(3, player.power + 1);
-                else lives = Math.min(5, lives + 1);
+                else if (p.type === 'life') lives = Math.min(5, lives + 1);
+                else if (p.type === 'shield') { player.shieldTimer = 300; player.shield = 1; }
+                else player.bombs = Math.min(3, player.bombs + 1);
                 explode(p.x, p.y, '#ffcc00', 8);
                 return false;
             }
@@ -569,7 +671,9 @@
 
         // UI
         document.getElementById('scoreText').textContent = '分数: ' + score;
-        document.getElementById('livesText').textContent = '❤'.repeat(lives);
+        document.getElementById('livesText').textContent = '❤'.repeat(lives) +
+            (player.shieldTimer > 0 ? ' 🛡' : '') +
+            (player.bombs > 0 ? ' 💣×' + player.bombs : '');
         document.getElementById('fireModeText').textContent = autoFire ? '自动 ON' : '手动';
         document.getElementById('fireModeText').style.color = autoFire ? '#0f0' : '#f80';
     }
@@ -596,6 +700,7 @@
         });
         ctx.globalAlpha = 1;
         drawPlayer();
+        drawBombEffect();
         ctx.fillStyle = 'rgba(255,255,255,0.3)';
         ctx.font = '14px Arial';
         ctx.textAlign = 'right';
