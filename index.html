@@ -316,7 +316,7 @@
         ctx.restore();
         // Shield
         if (player.shieldTimer > 0) {
-            const flashing = player.shieldTimer <= 120;
+            const flashing = player.shieldTimer <= 60;
             const visible = !flashing || Math.floor(player.shieldTimer / 6) % 2 === 0;
             if (visible) {
                 ctx.save();
@@ -698,9 +698,9 @@
                         lives--;
                         player.power = Math.max(1, player.power - 1);
                         explode(player.x, player.y, '#ff4444', 15);
+                        player.invincible = 120;
                         if (lives <= 0) endGame();
                     }
-                    player.invincible = 120;
                     return false;
                 }
                 return true;
