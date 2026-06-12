@@ -595,7 +595,7 @@
         el.addEventListener('touchcancel', e => { e.preventDefault(); setter(false); }, { passive: false });
     }
     document.getElementById('btnPause').addEventListener('click', e => { e.stopPropagation(); togglePause(); });
-    document.getElementById('btnBomb').addEventListener('click', e => { e.stopPropagation(); useBomb(); });
+    document.getElementById('btnBomb').addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); useBomb(); }, { passive: false });
 
     // Prevent all default touch on document to stop pull-to-refresh and scrolling
     document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
