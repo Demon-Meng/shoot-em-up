@@ -412,7 +412,8 @@
 
     // Powerups
     function spawnPowerup(x, y) {
-        if (Math.random() < 0.15) {
+        const rate = Math.min(0.5, 0.12 + level * 0.03);
+        if (Math.random() < rate) {
             const r = Math.random();
             const type = r < 0.4 ? 'power' : r < 0.65 ? 'life' : r < 0.88 ? 'shield' : 'bomb';
             powerups.push({ x, y, w: 20, h: 20, speed: 1.5, type });
