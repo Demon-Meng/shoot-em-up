@@ -696,11 +696,6 @@
                     } else {
                         lives--;
                         player.power = Math.max(1, player.power - 1);
-                        player.invincible = 120;
-                        explode(player.x, player.y, '#ff4444', 15);
-                        if (lives <= 0) endGame();
-                    }
-                        player.power = Math.max(1, player.power - 1);
                         explode(player.x, player.y, '#ff4444', 15);
                         if (lives <= 0) endGame();
                     }
